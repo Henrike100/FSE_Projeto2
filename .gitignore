@@ -1,0 +1,5 @@
+/central/bin/bin
+/central/obj/*.o
+/distribuido/bin/bin
+/distribuido/obj/*.o
+
