@@ -1,5 +1,7 @@
 #include "interface.hpp"
 
+FILE *file;
+
 bool programa_pode_continuar = true;
 
 float temperatura = 32.1;
@@ -24,6 +26,16 @@ int valores[] = {
     0, // Janela Quarto 1
     0, // Janela Quarto 2
 };
+
+void abrir_csv() {
+    file = fopen("arquivo.csv", "w+");
+    if(file == NULL) {
+        programa_pode_continuar = false;
+        return;
+    }
+
+    fprintf(file, "Data/Hora, Fonte, Ocorrido\n");
+}
 
 void atualizar_menu(WINDOW *menu) {
     mtx_interface.lock();
@@ -207,39 +219,45 @@ void pegar_opcao(WINDOW *menu) {
             invalid = opcao < 0 || opcao > 12;
         } while (invalid);
 
+        int ligou;
+
         switch (opcao) {
         case 1:
         case 2:
         case 3:
         case 4:
-            toggle_dispositivo(&valores[opcao-1]);
+            ligou = toggle_dispositivo(&valores[opcao-1]);
             break;
         case 5:
             ligar(&valores[0]);
             ligar(&valores[1]);
             ligar(&valores[2]);
             ligar(&valores[3]);
+            ligou = -1;
             break;
         case 6:
             desligar(&valores[0]);
             desligar(&valores[1]);
             desligar(&valores[2]);
             desligar(&valores[3]);
+            ligou = -1;
             break;
         case 7:
         case 8:
-            toggle_dispositivo(&valores[opcao-3]);
+            ligou = toggle_dispositivo(&valores[opcao-3]);
             break;
         case 9:
             ligar(&valores[4]);
             ligar(&valores[5]);
+            ligou = -1;
             break;
         case 10:
             desligar(&valores[4]);
             desligar(&valores[5]);
+            ligou = -1;
             break;
         case 11:
-            toggle_dispositivo(&valores[6]);
+            ligou = toggle_dispositivo(&valores[6]);
             break;
         case 12:
 
@@ -253,7 +271,7 @@ void pegar_opcao(WINDOW *menu) {
 
         atualizar_menu(menu);
         // enviar opcao com tcp
-        // atualizar csv
+        atualizar_csv(opcao, ligou);
     } while (programa_pode_continuar);
 }
 
@@ -261,5 +279,23 @@ void thread_atualizacao(WINDOW *info) {
     while(programa_pode_continuar) {
         atualizar_info(info);
         sleep(1);
+    }
+}
+
+void atualizar_csv(const int opcao, const int ligou) {
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+
+    if(opcao) {
+        fprintf(file, "%02d/%02d/%d %02d:%02d:%02d, Usuário, %s%s\n",
+            ltm->tm_mday,
+            ltm->tm_mon+1,
+            ltm->tm_year+1900,
+            ltm->tm_hour,
+            ltm->tm_min,
+            ltm->tm_sec,
+            ligou == 1 ? "Ligou " : ligou == 0 ? "Desligou " : "",
+            opcoes[opcao-1]
+        );
     }
 }

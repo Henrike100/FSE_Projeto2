@@ -29,6 +29,7 @@ int main(int argc, const char *argv[]) {
     wrefresh(menu);
     wrefresh(info);
 
+    abrir_csv();
     iniciar_menu(menu);
     iniciar_info(info);
 

@@ -1,5 +1,6 @@
 /central/bin/bin
 /central/obj/*.o
+/central/*.csv
 /distribuido/bin/bin
 /distribuido/obj/*.o
 

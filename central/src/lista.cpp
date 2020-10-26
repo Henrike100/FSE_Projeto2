@@ -1,7 +1,8 @@
 #include "lista.hpp"
 
-void toggle_dispositivo(int *dispositivo) {
+int toggle_dispositivo(int *dispositivo) {
     *dispositivo = 1 - *dispositivo;
+    return *dispositivo;
 }
 
 void ligar(int *dispositivo) {
