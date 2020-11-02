@@ -2,8 +2,6 @@
 #include "interface.hpp"
 #include <thread>
 
-//FILE *file;
-
 int main(int argc, const char *argv[]) {
     int size_x, size_y;
     initscr();
@@ -19,7 +17,18 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
-    //file = fopen("logs.csv", "w+");
+    int status_conexao = iniciar_conexao();
+
+    if(status_conexao == 1) {
+        endwin();
+        printf("Erro no socket()\n");
+        return 0;
+    }
+    else if(status_conexao == 2) {
+        endwin();
+        printf("Erro no connect()\n");
+        return 0;
+    }
 
     WINDOW *menu = newwin(size_y, 2*size_x/3, 0, 0), *info = newwin(size_y, size_x/3, 0, 2*size_x/3);
 
@@ -34,7 +43,7 @@ int main(int argc, const char *argv[]) {
     iniciar_info(info);
 
     thread thread_input(pegar_opcao, menu);
-    thread thread_info(thread_atualizacao, info);
+    thread thread_info(thread_atualizacao, menu, info);
 
     thread_input.join();
     thread_info.join();

@@ -2,6 +2,8 @@
 
 FILE *file;
 
+int clienteSocket;
+
 bool programa_pode_continuar = true;
 
 float temperatura = 32.1;
@@ -26,6 +28,22 @@ int valores[] = {
     0, // Janela Quarto 1
     0, // Janela Quarto 2
 };
+
+int iniciar_conexao() {
+    if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        return 1;
+    }
+
+    struct sockaddr_in servidorAddr;
+    memset(&servidorAddr, 0, sizeof(servidorAddr));
+	servidorAddr.sin_family = AF_INET;
+	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.52");
+	servidorAddr.sin_port = htons(PORT);
+
+    if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
+        return 2;
+    }
+}
 
 void abrir_csv() {
     file = fopen("arquivo.csv", "w+");
@@ -219,48 +237,43 @@ void pegar_opcao(WINDOW *menu) {
             invalid = opcao < 0 || opcao > 12;
         } while (invalid);
 
-        int ligou;
+        int ligar;
+
+        send(clienteSocket, &opcao, sizeof(opcao), 0);
 
         switch (opcao) {
         case 1:
         case 2:
         case 3:
         case 4:
-            ligou = toggle_dispositivo(&valores[opcao-1]);
+            ligar = 1 - valores[opcao-1];
+            send(clienteSocket, &ligar, sizeof(ligar), 0);
             break;
         case 5:
-            ligar(&valores[0]);
-            ligar(&valores[1]);
-            ligar(&valores[2]);
-            ligar(&valores[3]);
-            ligou = -1;
-            break;
         case 6:
-            desligar(&valores[0]);
-            desligar(&valores[1]);
-            desligar(&valores[2]);
-            desligar(&valores[3]);
-            ligou = -1;
+            ligar = 6 - opcao;
+            send(clienteSocket, &ligar, sizeof(ligar), 0);
+            ligar = -1;
             break;
         case 7:
         case 8:
-            ligou = toggle_dispositivo(&valores[opcao-3]);
+            ligar = 1 - valores[opcao-3];
+            send(clienteSocket, &ligar, sizeof(ligar), 0);
             break;
         case 9:
-            ligar(&valores[4]);
-            ligar(&valores[5]);
-            ligou = -1;
-            break;
         case 10:
-            desligar(&valores[4]);
-            desligar(&valores[5]);
-            ligou = -1;
+            ligar = 10 - opcao;
+            send(clienteSocket, &ligar, sizeof(ligar), 0);
+            ligar = -1;
             break;
         case 11:
-            ligou = toggle_dispositivo(&valores[6]);
+            ligar = 1 - valores[6];
+            send(clienteSocket, &ligar, sizeof(ligar), 0);
             break;
         case 12:
-
+            // pegar temp
+            //send(clienteSocket, &temp, sizeof(temp), 0);
+            ligar = -1;
             break;
         case 0:
             programa_pode_continuar = false;
@@ -269,14 +282,41 @@ void pegar_opcao(WINDOW *menu) {
             break;
         }
 
-        atualizar_menu(menu);
-        // enviar opcao com tcp
-        atualizar_csv(opcao, ligou);
+        atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
 }
 
-void thread_atualizacao(WINDOW *info) {
+void atualizar_valores() {
+    int bytes_recebidos;
+    float temperatura_umidade_servidor[2];
+    int valores_servidor[15];
+
+    bytes_recebidos = recv(clienteSocket, temperatura_umidade_servidor, sizeof(temperatura_umidade_servidor), 0);
+    if(bytes_recebidos == sizeof(temperatura_umidade_servidor)) {
+        float temp = temperatura_umidade_servidor[0], umid = temperatura_umidade_servidor[1];
+        if(temp > 0 && temp < 50) {
+            temperatura = temp;
+        }
+
+        if(umid >= 0 && umid <= 100) {
+            umidade = umid;
+        }
+    }
+
+    bytes_recebidos = recv(clienteSocket, valores_servidor, sizeof(valores_servidor), 0);
+    if(bytes_recebidos == sizeof(valores_servidor)) {
+        for(int i = 0; i < 15; ++i) {
+            if(valores_servidor[i] == 0 or valores_servidor[i] == 1) {
+                valores[i] = valores_servidor[i];
+            }
+        }
+    }
+}
+
+void thread_atualizacao(WINDOW *menu, WINDOW *info) {
     while(programa_pode_continuar) {
+        atualizar_valores();
+        atualizar_menu(menu);
         atualizar_info(info);
         sleep(1);
     }
@@ -294,7 +334,7 @@ void atualizar_csv(const int opcao, const int ligou) {
             ltm->tm_hour,
             ltm->tm_min,
             ltm->tm_sec,
-            ligou == 1 ? "Ligou " : ligou == 0 ? "Desligou " : "",
+            ligou == 1 ? "Ligar " : ligou == 0 ? "Desligar " : "",
             opcoes[opcao-1]
         );
     }
