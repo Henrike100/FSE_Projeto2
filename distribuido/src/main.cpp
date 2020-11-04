@@ -117,6 +117,8 @@ void receber_comandos() {
         return;
     }
 
+    printf("Connect\n");
+
     while(programa_pode_continuar) {
         receber(clienteSocket);
     }
@@ -154,6 +156,8 @@ void enviar_valores() {
     unsigned int clienteLength;
     struct sockaddr_in clienteAddr;
     int socketCliente;
+
+    printf("Sucesso\n");
 
     while(programa_pode_continuar) {
         clienteLength = sizeof(clienteAddr);

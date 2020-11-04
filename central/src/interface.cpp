@@ -307,6 +307,7 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info) {
         atualizar_valores();
         atualizar_menu(menu);
         atualizar_info(info);
+        sleep(1);
     }
 
     close(clienteSocket);
