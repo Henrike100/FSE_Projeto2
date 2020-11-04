@@ -39,7 +39,7 @@ int iniciar_conexao_servidor() {
     memset(&servidorAddr, 0, sizeof(servidorAddr));
 	servidorAddr.sin_family = AF_INET;
 	servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servidorAddr.sin_port = htons(8080);
+	servidorAddr.sin_port = htons(10028);
 
     if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
         return 2;
@@ -61,7 +61,7 @@ int iniciar_conexao_cliente() {
     memset(&servidorAddr, 0, sizeof(servidorAddr));
 	servidorAddr.sin_family = AF_INET;
 	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.52");
-	servidorAddr.sin_port = htons(PORT);
+	servidorAddr.sin_port = htons(10128);
 
     if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
         return 2;
