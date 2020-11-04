@@ -123,6 +123,7 @@ void enviar_valores() {
         }
 
         enviar(socketCliente);
+        printf("Enviado\n");
 
         close(socketCliente);
         sleep(1);
@@ -156,8 +157,6 @@ void iniciar_servidor() {
         programa_pode_continuar = false;
         return;
     }
-
-    printf("Sucesso\n");
 }
 
 void iniciar_client() {
@@ -180,17 +179,20 @@ void iniciar_client() {
 
 int main(int argc, const char *argv[]) {
     iniciar_servidor();
-    iniciar_client();
+
+    //sleep(5);
+
+    //iniciar_client();
 
     if(!programa_pode_continuar) {
         return 0;
     }
 
     thread thread_send(enviar_valores);
-    thread thread_recv(receber_comandos);
+    //thread thread_recv(receber_comandos);
 
     thread_send.join();
-    thread_recv.join();
+    //thread_recv.join();
 
     return 0;
 }
