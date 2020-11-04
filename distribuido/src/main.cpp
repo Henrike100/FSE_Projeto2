@@ -32,6 +32,9 @@ int valores[] = {
     0, // Janela Quarto 2
 };
 
+int clienteSocket;
+int servidorSocket;
+
 void enviar(int socket) {
     float temperatura_umidade[2];
     temperatura_umidade[0] = temperatura;
@@ -99,26 +102,6 @@ void receber(int socket) {
 }
 
 void receber_comandos() {
-    int clienteSocket;
-
-    if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        programa_pode_continuar = false;
-        return;
-    }
-
-    struct sockaddr_in servidorAddr;
-    memset(&servidorAddr, 0, sizeof(servidorAddr));
-	servidorAddr.sin_family = AF_INET;
-	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.53");
-	servidorAddr.sin_port = htons(10028);
-
-    if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
-        programa_pode_continuar = false;
-        return;
-    }
-
-    printf("Connect\n");
-
     while(programa_pode_continuar) {
         receber(clienteSocket);
     }
@@ -127,7 +110,28 @@ void receber_comandos() {
 }
 
 void enviar_valores() {
-    int servidorSocket;
+    unsigned int clienteLength;
+    struct sockaddr_in clienteAddr;
+    int socketCliente;
+
+    while(programa_pode_continuar) {
+        clienteLength = sizeof(clienteAddr);
+        if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
+            printf("Falha no Accept\n");
+            sleep(1);
+            continue;
+        }
+
+        enviar(socketCliente);
+
+        close(socketCliente);
+        sleep(1);
+    }
+
+    close(servidorSocket);
+}
+
+void iniciar_servidor() {
     if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         printf("falha no socket do Servidor\n");
         programa_pode_continuar = false;
@@ -153,30 +157,35 @@ void enviar_valores() {
         return;
     }
 
-    unsigned int clienteLength;
-    struct sockaddr_in clienteAddr;
-    int socketCliente;
-
     printf("Sucesso\n");
+}
 
-    while(programa_pode_continuar) {
-        clienteLength = sizeof(clienteAddr);
-        if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
-            printf("Falha no Accept\n");
-            sleep(1);
-            continue;
-        }
-
-        enviar(socketCliente);
-
-        close(socketCliente);
-        sleep(1);
+void iniciar_client() {
+    if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        programa_pode_continuar = false;
+        return;
     }
 
-    close(servidorSocket);
+    struct sockaddr_in servidorAddr;
+    memset(&servidorAddr, 0, sizeof(servidorAddr));
+	servidorAddr.sin_family = AF_INET;
+	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.53");
+	servidorAddr.sin_port = htons(10028);
+
+    if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
+        programa_pode_continuar = false;
+        return;
+    }
 }
 
 int main(int argc, const char *argv[]) {
+    iniciar_servidor();
+    iniciar_client();
+
+    if(!programa_pode_continuar) {
+        return 0;
+    }
+
     thread thread_send(enviar_valores);
     thread thread_recv(receber_comandos);
 
