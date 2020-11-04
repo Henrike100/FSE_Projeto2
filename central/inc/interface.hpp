@@ -17,7 +17,8 @@
 
 using namespace std;
 
-int iniciar_conexao();
+int iniciar_conexao_servidor();
+int iniciar_conexao_cliente();
 void abrir_csv();
 void atualizar_menu(WINDOW *menu);
 void iniciar_menu(WINDOW *menu);

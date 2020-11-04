@@ -2,7 +2,7 @@
 
 FILE *file;
 
-int clienteSocket;
+int clienteSocket, servidorSocket;
 
 bool programa_pode_continuar = true;
 
@@ -29,7 +29,30 @@ int valores[] = {
     0, // Janela Quarto 2
 };
 
-int iniciar_conexao() {
+int iniciar_conexao_servidor() {
+    if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        return 1;
+    }
+
+    struct sockaddr_in servidorAddr;
+
+    memset(&servidorAddr, 0, sizeof(servidorAddr));
+	servidorAddr.sin_family = AF_INET;
+	servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servidorAddr.sin_port = htons(8080);
+
+    if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
+        return 2;
+    }
+
+    if(listen(servidorSocket, 10) < 0) {
+        return 3;
+    }
+
+    return 0;
+}
+
+int iniciar_conexao_cliente() {
     if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         return 1;
     }
@@ -43,6 +66,8 @@ int iniciar_conexao() {
     if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
         return 2;
     }
+
+    return 0;
 }
 
 void abrir_csv() {
@@ -80,28 +105,18 @@ void atualizar_menu(WINDOW *menu) {
     mvwprintw(menu, 12, 7+line_size/2, "Desligar Todas as Lampadas");
 
     mvwprintw(menu, 16, 2, "07");
-    mvwprintw(menu, 16, 7, "%s%s", valores[4] ? "Desligar " : "Ligar ", opcoes[6]);
+    mvwprintw(menu, 16, 7, "%s%s", valores[6] ? "Desligar " : "Ligar ", opcoes[10]);
     mvwprintw(menu, 16, 2+line_size/2, "08");
-    mvwprintw(menu, 16, 7+line_size/2, "%s%s", valores[5] ? "Desligar " : "Ligar ", opcoes[7]);
+    mvwprintw(menu, 16, 7+line_size/2, "Definir Temperatura");
 
-    mvwprintw(menu, 20, 2, "09");
-    mvwprintw(menu, 20, 7, "Ligar Todos os Ares-Condicionados");
-    mvwprintw(menu, 20, 2+line_size/2, "10");
-    mvwprintw(menu, 20, 7+line_size/2, "Desligar Todos os Ares-Condicionados");
+    mvwprintw(menu, 20, 2, "00");
+    mvwprintw(menu, 20, 7, "Encerrar Programa");
 
-    mvwprintw(menu, 24, 2, "11");
-    mvwprintw(menu, 24, 7, "%s%s", valores[6] ? "Desligar " : "Ligar ", opcoes[10]);
-    mvwprintw(menu, 24, 2+line_size/2, "12");
-    mvwprintw(menu, 24, 7+line_size/2, "Definir Temperatura");
+    mvwvline(menu, 3, 5, 0, 20);
+    mvwvline(menu, 3, line_size/2, 0, 16);
+    mvwvline(menu, 3, 5+line_size/2, 0, 16);
 
-    mvwprintw(menu, 28, 2, "00");
-    mvwprintw(menu, 28, 7, "Encerrar Programa");
-
-    mvwvline(menu, 3, 5, 0, 27);
-    mvwvline(menu, 3, line_size/2, 0, 23);
-    mvwvline(menu, 3, 5+line_size/2, 0, 23);
-
-    for(int i = 6; i <= 30; i += 4) {
+    for(int i = 6; i <= 20; i += 4) {
         mvwhline(menu, i, 0, 0, line_size);
     }
 
@@ -209,81 +224,55 @@ void iniciar_info(WINDOW *info) {
     atualizar_info(info);
 }
 
-void pegar_opcao(WINDOW *menu) {
+void pegar_opcao(WINDOW *escolhas) {
     mtx_interface.lock();
-    const int num_lines = getmaxy(menu);
+    const int num_lines = getmaxy(escolhas);
     mtx_interface.unlock();
 
     int opcao;
     bool invalid = false;
 
+    unsigned int clienteLength;
+    struct sockaddr_in clienteAddr;
+    int socketCliente;
+
     do {
         do {
             mtx_interface.lock();
-            wmove(menu, num_lines-3, 1);
-            wclrtoeol(menu);
-            wmove(menu, num_lines-2, 1);
-            wclrtoeol(menu);
-            box(menu, 0, 0);
+            wmove(escolhas, num_lines-3, 1);
+            wclrtoeol(escolhas);
+            wmove(escolhas, num_lines-2, 1);
+            wclrtoeol(escolhas);
+            box(escolhas, 0, 0);
 
             if(invalid) {
-                mvwprintw(menu, num_lines-2, 2, "Escolha deve estar entre 0 e 12");
+                mvwprintw(escolhas, num_lines-2, 2, "Escolha deve estar entre 0 e 8");
             }
 
-            wrefresh(menu);
-            mvwprintw(menu, num_lines-3, 2, "Escolha uma opcao: ");
+            wrefresh(escolhas);
+            mvwprintw(escolhas, num_lines-3, 2, "Escolha uma opcao: ");
             mtx_interface.unlock();
-            mvwscanw(menu, num_lines-3, 21, " %d", &opcao);
-            invalid = opcao < 0 || opcao > 12;
+            mvwscanw(escolhas, num_lines-3, 21, " %d", &opcao);
+            invalid = opcao < 0 || opcao > 8;
         } while (invalid);
 
-        int ligar;
-
-        send(clienteSocket, &opcao, sizeof(opcao), 0);
-
-        switch (opcao) {
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-            ligar = 1 - valores[opcao-1];
-            send(clienteSocket, &ligar, sizeof(ligar), 0);
-            break;
-        case 5:
-        case 6:
-            ligar = 6 - opcao;
-            send(clienteSocket, &ligar, sizeof(ligar), 0);
-            ligar = -1;
-            break;
-        case 7:
-        case 8:
-            ligar = 1 - valores[opcao-3];
-            send(clienteSocket, &ligar, sizeof(ligar), 0);
-            break;
-        case 9:
-        case 10:
-            ligar = 10 - opcao;
-            send(clienteSocket, &ligar, sizeof(ligar), 0);
-            ligar = -1;
-            break;
-        case 11:
-            ligar = 1 - valores[6];
-            send(clienteSocket, &ligar, sizeof(ligar), 0);
-            break;
-        case 12:
-            // pegar temp
-            //send(clienteSocket, &temp, sizeof(temp), 0);
-            ligar = -1;
-            break;
-        case 0:
+        if(opcao == 0)
             programa_pode_continuar = false;
-            break;
-        default:
-            break;
+
+        clienteLength = sizeof(clienteAddr);
+        if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
+            // Falha no Accept
+            continue;
         }
 
-        atualizar_csv(opcao, ligar);
+        send(clienteSocket, &opcao, sizeof(opcao), 0);
+        close(socketCliente);
+
+        //atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
+
+    fclose(file);
+    close(servidorSocket);
 }
 
 void atualizar_valores() {
@@ -318,8 +307,9 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info) {
         atualizar_valores();
         atualizar_menu(menu);
         atualizar_info(info);
-        sleep(1);
     }
+
+    close(clienteSocket);
 }
 
 void atualizar_csv(const int opcao, const int ligou) {
