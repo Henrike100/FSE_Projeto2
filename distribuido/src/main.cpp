@@ -10,7 +10,7 @@ using namespace std;
 
 bool programa_pode_continuar = true;
 
-float temperatura = 1.7;
+float temperatura = 0.0;
 float umidade = 0.0;
 float temperatura_usuario = 0.0;
 
@@ -49,7 +49,6 @@ int servidorSocket;
 unsigned int clienteLength;
 struct sockaddr_in clienteAddr;
 int socketCliente;
-int temp_comando = 0;
 
 void enviar() {
     float temperatura_umidade[2];
@@ -60,25 +59,18 @@ void enviar() {
 
     bytes_enviados = send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
     bytes_enviados = send(socketCliente, valores, sizeof(valores), 0);
-    
-    temperatura += 0.1;
-    umidade += 0.2;
-
-    temp_comando = (temp_comando+1)%15;
-    if(temp_comando > 5)
-        valores[temp_comando] = 1 - valores[temp_comando];
 }
 
-void receber(int socket) {
+void receber() {
     int comando;
-    int bytesRecebidos = recv(socket, &comando, sizeof(comando), 0);
+    int bytesRecebidos = recv(clienteSocket, &comando, sizeof(comando), 0);
     if(bytesRecebidos < 0) {
         printf("Erro ao receber comando\n");
     }
     else if(bytesRecebidos == 0) {
         printf("Não há dado disponível para comando\n");
     }
-    else {
+    else if(comando != 7) {
         printf("Comando recebido: (%d) %s\n", comando, opcoes[comando]);
         float temp_recebida;
         switch (comando) {
@@ -95,12 +87,12 @@ void receber(int socket) {
             valores[0] = valores[1] = valores[2] = valores[3] = 0;
             break;
         case 8:
-            bytesRecebidos = recv(socket, &temp_recebida, sizeof(temp_recebida), 0);
+            bytesRecebidos = recv(clienteSocket, &temp_recebida, sizeof(temp_recebida), 0);
             if(bytesRecebidos < 0) {
                 printf("Erro ao receber temperatura\n");
             }
             else if(bytesRecebidos == 0) {
-                printf("Não há dado disponível para comando\n");
+                printf("Não há dado disponível para temperatura\n");
             }
             else {
                 // conseguiu receber temperatura
@@ -127,7 +119,7 @@ void receber(int socket) {
 
 void receber_comandos() {
     while(programa_pode_continuar) {
-        receber(clienteSocket);
+        receber();
     }
 
     close(clienteSocket);
