@@ -10,7 +10,7 @@ using namespace std;
 
 bool programa_pode_continuar = true;
 
-float temperatura = 0.0;
+float temperatura = 1.7;
 float umidade = 0.0;
 float temperatura_usuario = 0.0;
 
@@ -34,15 +34,20 @@ int valores[] = {
 
 int clienteSocket;
 int servidorSocket;
+unsigned int clienteLength;
+struct sockaddr_in clienteAddr;
+int socketCliente;
 
-void enviar(int socket) {
+void enviar() {
     float temperatura_umidade[2];
     temperatura_umidade[0] = temperatura;
     temperatura_umidade[1] = umidade;
 
-    send(socket, temperatura_umidade, sizeof(temperatura_umidade), 0);
-    send(socket, valores, sizeof(valores), 0);
+    int bytes_enviados;
 
+    bytes_enviados = send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
+    bytes_enviados = send(socketCliente, valores, sizeof(valores), 0);
+    
     temperatura += 0.1;
     umidade += 0.2;
 }
@@ -110,25 +115,15 @@ void receber_comandos() {
 }
 
 void enviar_valores() {
-    unsigned int clienteLength;
-    struct sockaddr_in clienteAddr;
-    int socketCliente;
-
     while(programa_pode_continuar) {
         clienteLength = sizeof(clienteAddr);
-        if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
-            printf("Falha no Accept\n");
-            sleep(1);
-            continue;
-        }
 
-        enviar(socketCliente);
-        printf("Enviado\n");
+        enviar();
 
-        close(socketCliente);
         sleep(1);
     }
 
+    close(socketCliente);
     close(servidorSocket);
 }
 
@@ -156,6 +151,11 @@ void iniciar_servidor() {
         printf("Falha no Listen\n");
         programa_pode_continuar = false;
         return;
+    }
+
+    if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
+        printf("Falha no Accept\n");
+        programa_pode_continuar = false;
     }
 }
 
