@@ -265,7 +265,7 @@ void pegar_opcao(WINDOW *escolhas) {
 
         clienteLength = sizeof(clienteAddr);
 
-        send(clienteSocket, &opcao, sizeof(opcao), 0);
+        send(socketCliente, &opcao, sizeof(opcao), 0);
 
         //atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
