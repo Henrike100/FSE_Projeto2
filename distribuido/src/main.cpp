@@ -32,6 +32,18 @@ int valores[] = {
     0, // Janela Quarto 2
 };
 
+const char *const opcoes[] = {
+    "Encerrar Programa",
+    "Lampada da Cozinha",
+    "Lampada da Sala",
+    "Lampada do Quarto 01",
+    "Lampada do Quarto 02",
+    "Ligar Todas as Lampadas",
+    "Desligar Todas as Lampadas",
+    "Alarme",
+    "Definir Temperatura"
+};
+
 int clienteSocket;
 int servidorSocket;
 unsigned int clienteLength;
@@ -62,6 +74,7 @@ void receber(int socket) {
         printf("Não há dado disponível para comando\n");
     }
     else {
+        printf("Comando recebido: (%d) %s\n", comando, opcoes[comando]);
         float temp_recebida;
         switch (comando) {
         case 1:
@@ -89,6 +102,7 @@ void receber(int socket) {
                 // verifica se é um valor aceitável para o contexto atual
                 // 0 <= temp <= 50
                 if(0 <= temp_recebida && temp_recebida <= 50) {
+                    printf("Temperatura Solicitada: %.1f\n", temp_recebida);
                     temperatura_usuario = temp_recebida;
                 }
                 else {
@@ -179,20 +193,18 @@ void iniciar_client() {
 
 int main(int argc, const char *argv[]) {
     iniciar_servidor();
-
-    //sleep(5);
-
-    //iniciar_client();
+    sleep(1);
+    iniciar_client();
 
     if(!programa_pode_continuar) {
         return 0;
     }
 
     thread thread_send(enviar_valores);
-    //thread thread_recv(receber_comandos);
+    thread thread_recv(receber_comandos);
 
     thread_send.join();
-    //thread_recv.join();
+    thread_recv.join();
 
     return 0;
 }

@@ -11,6 +11,10 @@ float umidade = 73.1;
 
 mutex mtx_interface;
 
+unsigned int clienteLength;
+struct sockaddr_in clienteAddr;
+int socketCliente;
+
 int valores[] = {
     0, // Lampada Cozinha
     0, // Lampada Sala
@@ -47,6 +51,10 @@ int iniciar_conexao_servidor() {
 
     if(listen(servidorSocket, 10) < 0) {
         return 3;
+    }
+
+    if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
+        return 4;
     }
 
     return 0;
@@ -90,27 +98,27 @@ void atualizar_menu(WINDOW *menu) {
     }
 
     mvwprintw(menu, 4, 2, "01");
-    mvwprintw(menu, 4, 7, "%s%s", valores[0] ? "Desligar " : "Ligar ", opcoes[0]);
+    mvwprintw(menu, 4, 7, "%s%s", valores[0] ? "Desligar " : "Ligar ", opcoes[1]);
     mvwprintw(menu, 4, 2+line_size/2, "02");
-    mvwprintw(menu, 4, 7+line_size/2, "%s%s", valores[1] ? "Desligar " : "Ligar ", opcoes[1]);
+    mvwprintw(menu, 4, 7+line_size/2, "%s%s", valores[1] ? "Desligar " : "Ligar ", opcoes[2]);
 
     mvwprintw(menu, 8, 2, "03");
-    mvwprintw(menu, 8, 7, "%s%s", valores[2] ? "Desligar " : "Ligar ", opcoes[2]);
+    mvwprintw(menu, 8, 7, "%s%s", valores[2] ? "Desligar " : "Ligar ", opcoes[3]);
     mvwprintw(menu, 8, 2+line_size/2, "04");
-    mvwprintw(menu, 8, 7+line_size/2, "%s%s", valores[3] ? "Desligar " : "Ligar ", opcoes[3]);
+    mvwprintw(menu, 8, 7+line_size/2, "%s%s", valores[3] ? "Desligar " : "Ligar ", opcoes[4]);
 
     mvwprintw(menu, 12, 2, "05");
-    mvwprintw(menu, 12, 7, "Ligar Todas as Lampadas");
+    mvwprintw(menu, 12, 7, "%s", opcoes[5]);
     mvwprintw(menu, 12, 2+line_size/2, "06");
-    mvwprintw(menu, 12, 7+line_size/2, "Desligar Todas as Lampadas");
+    mvwprintw(menu, 12, 7+line_size/2, "%s", opcoes[6]);
 
     mvwprintw(menu, 16, 2, "07");
-    mvwprintw(menu, 16, 7, "%s%s", valores[6] ? "Desligar " : "Ligar ", opcoes[10]);
+    mvwprintw(menu, 16, 7, "%s%s", valores[6] ? "Desligar " : "Ligar ", opcoes[7]);
     mvwprintw(menu, 16, 2+line_size/2, "08");
-    mvwprintw(menu, 16, 7+line_size/2, "Definir Temperatura");
+    mvwprintw(menu, 16, 7+line_size/2, "%s", opcoes[8]);
 
     mvwprintw(menu, 20, 2, "00");
-    mvwprintw(menu, 20, 7, "Encerrar Programa");
+    mvwprintw(menu, 20, 7, "%s", opcoes[0]);
 
     mvwvline(menu, 3, 5, 0, 20);
     mvwvline(menu, 3, line_size/2, 0, 16);
@@ -232,10 +240,6 @@ void pegar_opcao(WINDOW *escolhas) {
     int opcao;
     bool invalid = false;
 
-    unsigned int clienteLength;
-    struct sockaddr_in clienteAddr;
-    int socketCliente;
-
     do {
         do {
             mtx_interface.lock();
@@ -260,18 +264,14 @@ void pegar_opcao(WINDOW *escolhas) {
             programa_pode_continuar = false;
 
         clienteLength = sizeof(clienteAddr);
-        if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
-            // Falha no Accept
-            continue;
-        }
 
         send(clienteSocket, &opcao, sizeof(opcao), 0);
-        close(socketCliente);
 
         //atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
 
     fclose(file);
+    close(socketCliente);
     close(servidorSocket);
 }
 
@@ -325,7 +325,7 @@ void atualizar_csv(const int opcao, const int ligou) {
             ltm->tm_min,
             ltm->tm_sec,
             ligou == 1 ? "Ligar " : ligou == 0 ? "Desligar " : "",
-            opcoes[opcao-1]
+            opcoes[opcao]
         );
     }
 }

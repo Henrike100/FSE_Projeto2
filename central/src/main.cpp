@@ -47,6 +47,11 @@ int main(int argc, const char *argv[]) {
         printf("Falha no Listen\n");
         return 0;
     }
+    else if(status_conexao == 4) {
+        endwin();
+        printf("Falha no Accept\n");
+        return 0;
+    }
 
     WINDOW *menu = newwin(23, 2*size_x/3, 0, 0),
            *info = newwin(size_y, size_x/3, 0, 2*size_x/3),
