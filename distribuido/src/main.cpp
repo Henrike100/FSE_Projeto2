@@ -49,6 +49,7 @@ int servidorSocket;
 unsigned int clienteLength;
 struct sockaddr_in clienteAddr;
 int socketCliente;
+int temp_comando = 0;
 
 void enviar() {
     float temperatura_umidade[2];
@@ -62,6 +63,10 @@ void enviar() {
     
     temperatura += 0.1;
     umidade += 0.2;
+
+    temp_comando = (temp_comando+1)%15;
+    if(temp_comando > 5)
+        valores[temp_comando] = 1 - valores[temp_comando];
 }
 
 void receber(int socket) {
