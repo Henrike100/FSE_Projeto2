@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <thread>
+#include "gpio.hpp"
+#include "constantes.hpp"
 
 using namespace std;
 
@@ -21,7 +23,6 @@ int valores[] = {
     0, // Lampada Quarto 2
     0, // Ar Condicionado 1
     0, // Ar Condicionado 2
-    0, // Alarme
     0, // Sala
     0, // Cozinha
     0, // Porta Cozinha
@@ -32,23 +33,12 @@ int valores[] = {
     0, // Janela Quarto 2
 };
 
-const char *const opcoes[] = {
-    "Encerrar Programa",
-    "Lampada da Cozinha",
-    "Lampada da Sala",
-    "Lampada do Quarto 01",
-    "Lampada do Quarto 02",
-    "Ligar Todas as Lampadas",
-    "Desligar Todas as Lampadas",
-    "Alarme",
-    "Definir Temperatura"
-};
-
 int clienteSocket;
 int servidorSocket;
-unsigned int clienteLength;
-struct sockaddr_in clienteAddr;
 int socketCliente;
+
+struct bme280_dev dev;
+struct identifier id;
 
 void enviar() {
     float temperatura_umidade[2];
@@ -75,16 +65,34 @@ void receber() {
         float temp_recebida;
         switch (comando) {
         case 1:
+            valores[0] = 1 - valores[0];
+            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 1-valores[0]);
+            break;
         case 2:
+            valores[1] = 1 - valores[1];
+            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 1-valores[1]);
+            break;
         case 3:
+            valores[2] = 1 - valores[2];
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 1-valores[2]);
+            break;
         case 4:
-            valores[comando-1] = 1 - valores[comando-1];
+            valores[3] = 1 - valores[3];
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 1-valores[3]);
             break;
         case 5:
             valores[0] = valores[1] = valores[2] = valores[3] = 1;
+            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 0);
             break;
         case 6:
             valores[0] = valores[1] = valores[2] = valores[3] = 0;
+            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 1);
+            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 1);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 1);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 1);
             break;
         case 8:
             bytesRecebidos = recv(clienteSocket, &temp_recebida, sizeof(temp_recebida), 0);
@@ -125,75 +133,100 @@ void receber_comandos() {
     close(clienteSocket);
 }
 
+void leitura_sensores_bme280() {
+    if (bme280_set_sensor_mode(BME280_FORCED_MODE, &dev) == BME280_OK) {
+        if (bme280_get_sensor_data(BME280_ALL, &comp_data, &dev) == BME280_OK) {
+            float temp_lida = comp_data.temperature;
+            float umid_lida = comp_data.humidity;
+            if(0 <= temp_lida && temp_lida <= 50) {
+                temperatura = temp_lida;
+            }
+            if(0 <= umid_lida && umid_lida <= 100) {
+                umidade = umid_lida;
+            }
+        }
+    }
+}
+
+void leitura_sensores_gpio() {
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_SALA) )
+        valores[6] = 1;
+    else
+        valores[6] = 0;
+
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_COZINHA) )
+        valores[7] = 1;
+    else
+        valores[7] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_PORTA_COZINHA) )
+        valores[8] = 1;
+    else
+        valores[8] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_COZINHA) )
+        valores[9] = 1;
+    else
+        valores[9] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_PORTA_SALA) )
+        valores[10] = 1;
+    else
+        valores[10] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_SALA) )
+        valores[11] = 1;
+    else
+        valores[11] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_01) )
+        valores[12] = 1;
+    else
+        valores[12] = 0;
+    
+    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_02) )
+        valores[13] = 1;
+    else
+        valores[13] = 0;
+}
+
 void enviar_valores() {
     while(programa_pode_continuar) {
-        clienteLength = sizeof(clienteAddr);
-
+        leitura_sensores_bme280();
+        leitura_sensores_gpio();
         enviar();
-
         sleep(1);
     }
 
+    close(id.fd);
     close(socketCliente);
     close(servidorSocket);
 }
 
-void iniciar_servidor() {
-    if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        printf("falha no socket do Servidor\n");
-        programa_pode_continuar = false;
-        return;
-    }
-
-    struct sockaddr_in servidorAddr;
-
-    memset(&servidorAddr, 0, sizeof(servidorAddr));
-	servidorAddr.sin_family = AF_INET;
-	servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servidorAddr.sin_port = htons(10128);
-
-    if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
-        printf("Falha no Bind\n");
-        programa_pode_continuar = false;
-        return;
-    }
-
-    if(listen(servidorSocket, 10) < 0) {
-        printf("Falha no Listen\n");
-        programa_pode_continuar = false;
-        return;
-    }
-
-    if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
-        printf("Falha no Accept\n");
-        programa_pode_continuar = false;
-    }
-}
-
-void iniciar_client() {
-    if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        programa_pode_continuar = false;
-        return;
-    }
-
-    struct sockaddr_in servidorAddr;
-    memset(&servidorAddr, 0, sizeof(servidorAddr));
-	servidorAddr.sin_family = AF_INET;
-	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.53");
-	servidorAddr.sin_port = htons(10028);
-
-    if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
-        programa_pode_continuar = false;
-        return;
-    }
-}
-
 int main(int argc, const char *argv[]) {
-    iniciar_servidor();
-    sleep(1);
-    iniciar_client();
+    int erro = configurar_gpio();
+    if(erro) {
+        printf("Não foi possível configurar a GPIO\n");
+        return 0;
+    }
 
-    if(!programa_pode_continuar) {
+    erro = configurar_sensores(&dev, &id);
+    if(erro) {
+        printf("Não foi possível configurar os sensores\n");
+        return 0;
+    }
+
+    erro = iniciar_servidor(&servidorSocket, &socketCliente);
+    if(erro) {
+        printf("Não foi possível iniciar o servidor\n");
+        return 0;
+    }
+    
+    sleep(1);
+
+    erro = iniciar_client(&clienteSocket);
+    if(erro) {
+        printf("Não foi possível se conectar ao Servidor Central\n");
         return 0;
     }
 
