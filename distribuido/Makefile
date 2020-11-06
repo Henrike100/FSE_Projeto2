@@ -20,3 +20,6 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 clean:
 	-rm -f $(OBJDIR)/*.o $(EXE)
+
+run:
+	bin/bin

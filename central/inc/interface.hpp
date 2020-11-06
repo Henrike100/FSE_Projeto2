@@ -24,6 +24,7 @@ void atualizar_menu(WINDOW *menu);
 void iniciar_menu(WINDOW *menu);
 void atualizar_info(WINDOW *info);
 void iniciar_info(WINDOW *info);
+float pegar_temperatura(WINDOW *escolhas);
 void pegar_opcao(WINDOW *menu);
 void atualizar_valores();
 void thread_atualizacao(WINDOW *menu, WINDOW *info);

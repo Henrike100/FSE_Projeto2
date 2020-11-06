@@ -14,7 +14,7 @@ bool programa_pode_continuar = true;
 
 float temperatura = 0.0;
 float umidade = 0.0;
-float temperatura_usuario = 0.0;
+float temperatura_usuario = -1.0;
 
 int valores[] = {
     0, // Lampada Cozinha
@@ -149,51 +149,47 @@ void leitura_sensores_bme280() {
 }
 
 void leitura_sensores_gpio() {
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_SALA) )
-        valores[6] = 1;
-    else
-        valores[6] = 0;
+    valores[6] = (bcm2835_gpio_lev(GPIO_SENSOR_SALA) ? 0 : 1);
+    valores[7] = (bcm2835_gpio_lev(GPIO_SENSOR_COZINHA) ? 0 : 1);
+    valores[8] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_COZINHA) ? 0 : 1);
+    valores[9] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_COZINHA) ? 0 : 1);
+    valores[10] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_SALA) ? 0 : 1);
+    valores[11] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_SALA) ? 0 : 1);
+    valores[12] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_01) ? 0 : 1);
+    valores[13] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_02) ? 0 : 1);
+}
 
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_COZINHA) )
-        valores[7] = 1;
-    else
-        valores[7] = 0;
+void controlar_ar_condicionado() {
+    // se o usuario ainda não definiu uma temperatura
+    if(temperatura_usuario < 0)
+        return;
     
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_PORTA_COZINHA) )
-        valores[8] = 1;
-    else
-        valores[8] = 0;
-    
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_COZINHA) )
-        valores[9] = 1;
-    else
-        valores[9] = 0;
-    
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_PORTA_SALA) )
-        valores[10] = 1;
-    else
-        valores[10] = 0;
-    
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_SALA) )
-        valores[11] = 1;
-    else
-        valores[11] = 0;
-    
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_01) )
-        valores[12] = 1;
-    else
-        valores[12] = 0;
-    
-    if( !bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_02) )
-        valores[13] = 1;
-    else
-        valores[13] = 0;
+    // se a temperatura do ambiente estiver maior que a solicitada pelo usuário
+    if(temperatura > temperatura_usuario) {
+        // e se o ar-condicionado estiver desligado
+        if(valores[4] == 0) {
+            // liga os dois
+            valores[4] = valores[5] = 1;
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 0);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 0);
+        }
+    }
+    else { // caso a temperatura ambiente esteja igual ou menor que a solicitada
+        // e se o ar-condicionado estiver ligado
+        if(valores[4] == 1) {
+            // desliga os dois
+            valores[4] = valores[5] = 0;
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 1);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 1);
+        }
+    }
 }
 
 void enviar_valores() {
     while(programa_pode_continuar) {
         leitura_sensores_bme280();
         leitura_sensores_gpio();
+        controlar_ar_condicionado();
         enviar();
         sleep(1);
     }

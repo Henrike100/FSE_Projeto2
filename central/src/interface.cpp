@@ -6,14 +6,15 @@ int clienteSocket, servidorSocket;
 
 bool programa_pode_continuar = true;
 
-float temperatura = 32.1;
-float umidade = 73.1;
+float temperatura = 0;
+float umidade = 0;
 
 mutex mtx_interface;
 
 unsigned int clienteLength;
 struct sockaddr_in clienteAddr;
 int socketCliente;
+int alarme = 0;
 
 int valores[] = {
     0, // Lampada Cozinha
@@ -22,7 +23,6 @@ int valores[] = {
     0, // Lampada Quarto 2
     0, // Ar Condicionado 1
     0, // Ar Condicionado 2
-    0, // Alarme
     0, // Sala
     0, // Cozinha
     0, // Porta Cozinha
@@ -113,7 +113,7 @@ void atualizar_menu(WINDOW *menu) {
     mvwprintw(menu, 12, 7+line_size/2, "%s", opcoes[6]);
 
     mvwprintw(menu, 16, 2, "07");
-    mvwprintw(menu, 16, 7, "%s%s", valores[6] ? "Desligar " : "Ligar ", opcoes[7]);
+    mvwprintw(menu, 16, 7, "%s%s", alarme ? "Desligar " : "Ligar ", opcoes[7]);
     mvwprintw(menu, 16, 2+line_size/2, "08");
     mvwprintw(menu, 16, 7+line_size/2, "%s", opcoes[8]);
 
@@ -181,31 +181,31 @@ void atualizar_info(WINDOW *info) {
     mvwprintw(info, 17, 2+barra_vertical, valores[5] ? "Ligado" : "Desligado");
 
     mvwprintw(info, 19, 2, "Alarme");
-    mvwprintw(info, 19, 2+barra_vertical, valores[6] ? "Ligado" : "Desligado");
+    mvwprintw(info, 19, 2+barra_vertical, alarme ? "Ligado" : "Desligado");
 
     mvwprintw(info, 21, 2, "Sala");
-    mvwprintw(info, 21, 2+barra_vertical, valores[7] ? "Alguem" : "Vazia");
+    mvwprintw(info, 21, 2+barra_vertical, valores[6] ? "Alguem" : "Vazia");
 
     mvwprintw(info, 23, 2, "Cozinha");
-    mvwprintw(info, 23, 2+barra_vertical, valores[8] ? "Alguem" : "Vazia");
+    mvwprintw(info, 23, 2+barra_vertical, valores[7] ? "Alguem" : "Vazia");
 
     mvwprintw(info, 25, 2, "Porta (Cozinha)");
-    mvwprintw(info, 25, 2+barra_vertical, valores[9] ? "Aberta" : "Fechada");
+    mvwprintw(info, 25, 2+barra_vertical, valores[8] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 27, 2, "Janela (Cozinha)");
-    mvwprintw(info, 27, 2+barra_vertical, valores[10] ? "Aberta" : "Fechada");
+    mvwprintw(info, 27, 2+barra_vertical, valores[9] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 29, 2, "Porta (Sala)");
-    mvwprintw(info, 29, 2+barra_vertical, valores[11] ? "Aberta" : "Fechada");
+    mvwprintw(info, 29, 2+barra_vertical, valores[10] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 31, 2, "Janela (Sala)");
-    mvwprintw(info, 31, 2+barra_vertical, valores[12] ? "Aberta" : "Fechada");
+    mvwprintw(info, 31, 2+barra_vertical, valores[11] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 33, 2, "Janela (Quarto 01)");
-    mvwprintw(info, 33, 2+barra_vertical, valores[13] ? "Aberta" : "Fechada");
+    mvwprintw(info, 33, 2+barra_vertical, valores[12] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 35, 2, "Janela (Quarto 02)");
-    mvwprintw(info, 35, 2+barra_vertical, valores[14] ? "Aberta" : "Fechada");
+    mvwprintw(info, 35, 2+barra_vertical, valores[13] ? "Aberta" : "Fechada");
 
     mvwprintw(info, 37, 2, "CSV"); mvwprintw(info, 37, 2+barra_vertical, "Iniciando");
 
@@ -230,6 +230,33 @@ void iniciar_info(WINDOW *info) {
     mtx_interface.unlock();
 
     atualizar_info(info);
+}
+
+float pegar_temperatura(WINDOW *escolhas) {
+    float temp;
+    bool invalid = false;
+
+    mtx_interface.lock();
+    const int num_lines = getmaxy(escolhas);
+    mtx_interface.unlock();
+
+    do {
+        mtx_interface.lock();
+        wmove(escolhas, num_lines-2, 1);
+        wclrtoeol(escolhas);
+        box(escolhas, 0, 0);
+        if(invalid) {
+            mvwprintw(escolhas, num_lines-2, 2, "Temperatura deve estar entre 0 e 50");
+        }
+
+        wrefresh(escolhas);
+        mvwprintw(escolhas, num_lines-3, 2, "Digite a temperatura: ");
+        mtx_interface.unlock();
+        mvwscanw(escolhas, num_lines-3, 21, " %f", &temp);
+        invalid = temp < 0 || temp > 50;
+    } while (invalid);
+
+    return temp;
 }
 
 void pegar_opcao(WINDOW *escolhas) {
@@ -262,12 +289,28 @@ void pegar_opcao(WINDOW *escolhas) {
 
         if(opcao == 0)
             programa_pode_continuar = false;
+        
+        float temp;
+        
+        if(opcao == 8)
+            temp = pegar_temperatura(escolhas);
 
         clienteLength = sizeof(clienteAddr);
 
-        send(socketCliente, &opcao, sizeof(opcao), 0);
+        if(opcao != 7)
+            send(socketCliente, &opcao, sizeof(opcao), 0);
+        
+        if(opcao == 8)
+            send(socketCliente, &temp, sizeof(temp), 0);
+        
+        int ligar;
 
-        //atualizar_csv(opcao, ligar);
+        if(opcao == 5 or opcao == 6 or opcao == 8 or opcao == 0)
+            ligar = -1;
+        else
+            ligar = valores[opcao];
+
+        atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
 
     fclose(file);
