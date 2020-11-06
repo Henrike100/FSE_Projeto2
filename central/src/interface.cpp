@@ -1,21 +1,11 @@
 #include "interface.hpp"
 
-FILE *file;
-
-int clienteSocket, servidorSocket;
-
 bool programa_pode_continuar = true;
-
-float temperatura = 0;
-float umidade = 0;
-
 mutex mtx_interface;
 
-unsigned int clienteLength;
-struct sockaddr_in clienteAddr;
-int socketCliente;
 int alarme = 0;
-
+float temperatura = 0;
+float umidade = 0;
 int valores[] = {
     0, // Lampada Cozinha
     0, // Lampada Sala
@@ -32,61 +22,6 @@ int valores[] = {
     0, // Janela Quarto 1
     0, // Janela Quarto 2
 };
-
-int iniciar_conexao_servidor() {
-    if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        return 1;
-    }
-
-    struct sockaddr_in servidorAddr;
-
-    memset(&servidorAddr, 0, sizeof(servidorAddr));
-	servidorAddr.sin_family = AF_INET;
-	servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servidorAddr.sin_port = htons(10028);
-
-    if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
-        return 2;
-    }
-
-    if(listen(servidorSocket, 10) < 0) {
-        return 3;
-    }
-
-    if((socketCliente = accept(servidorSocket, (struct sockaddr *) &clienteAddr, &clienteLength)) < 0) {
-        return 4;
-    }
-
-    return 0;
-}
-
-int iniciar_conexao_cliente() {
-    if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-        return 1;
-    }
-
-    struct sockaddr_in servidorAddr;
-    memset(&servidorAddr, 0, sizeof(servidorAddr));
-	servidorAddr.sin_family = AF_INET;
-	servidorAddr.sin_addr.s_addr = inet_addr("192.168.0.52");
-	servidorAddr.sin_port = htons(10128);
-
-    if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0) {
-        return 2;
-    }
-
-    return 0;
-}
-
-void abrir_csv() {
-    file = fopen("arquivo.csv", "w+");
-    if(file == NULL) {
-        programa_pode_continuar = false;
-        return;
-    }
-
-    fprintf(file, "Data/Hora, Fonte, Ocorrido\n");
-}
 
 void atualizar_menu(WINDOW *menu) {
     mtx_interface.lock();
@@ -259,7 +194,7 @@ float pegar_temperatura(WINDOW *escolhas) {
     return temp;
 }
 
-void pegar_opcao(WINDOW *escolhas) {
+void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *file) {
     mtx_interface.lock();
     const int num_lines = getmaxy(escolhas);
     mtx_interface.unlock();
@@ -295,8 +230,6 @@ void pegar_opcao(WINDOW *escolhas) {
         if(opcao == 8)
             temp = pegar_temperatura(escolhas);
 
-        clienteLength = sizeof(clienteAddr);
-
         if(opcao != 7)
             send(socketCliente, &opcao, sizeof(opcao), 0);
         
@@ -310,7 +243,7 @@ void pegar_opcao(WINDOW *escolhas) {
         else
             ligar = valores[opcao];
 
-        atualizar_csv(opcao, ligar);
+        atualizar_csv(file, opcao, ligar);
     } while (programa_pode_continuar);
 
     fclose(file);
@@ -318,7 +251,7 @@ void pegar_opcao(WINDOW *escolhas) {
     close(servidorSocket);
 }
 
-void atualizar_valores() {
+void atualizar_valores(int clienteSocket) {
     int bytes_recebidos;
     float temperatura_umidade_servidor[2];
     int valores_servidor[15];
@@ -345,9 +278,9 @@ void atualizar_valores() {
     }
 }
 
-void thread_atualizacao(WINDOW *menu, WINDOW *info) {
+void thread_atualizacao(WINDOW *menu, WINDOW *info, int clienteSocket) {
     while(programa_pode_continuar) {
-        atualizar_valores();
+        atualizar_valores(clienteSocket);
         atualizar_menu(menu);
         atualizar_info(info);
     }
@@ -355,7 +288,7 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info) {
     close(clienteSocket);
 }
 
-void atualizar_csv(const int opcao, const int ligou) {
+void atualizar_csv(FILE *file, const int opcao, const int ligou) {
     time_t now = time(0);
     tm *ltm = localtime(&now);
 

@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "interface.hpp"
+#include "configuracoes.hpp"
 #include <thread>
+
+int clienteSocket;
+int servidorSocket;
+int socketCliente;
 
 int main(int argc, const char *argv[]) {
     int size_x, size_y;
@@ -17,7 +22,7 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
-    int status_conexao = iniciar_conexao_cliente();
+    int status_conexao = iniciar_conexao_cliente(&clienteSocket);
 
     if(status_conexao == 1) {
         endwin();
@@ -30,7 +35,7 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
-    status_conexao = iniciar_conexao_servidor();
+    status_conexao = iniciar_conexao_servidor(&servidorSocket, &socketCliente);
 
     if(status_conexao == 1) {
         endwin();
@@ -53,6 +58,16 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
+    FILE *file;
+
+    int erro = abrir_csv(file);
+
+    if(erro) {
+        endwin();
+        printf("Não foi possível abrir o CSV\n");
+        return 0;
+    }
+
     WINDOW *menu = newwin(23, 2*size_x/3, 0, 0),
            *info = newwin(size_y, size_x/3, 0, 2*size_x/3),
            *escolhas = newwin(size_y-23, 2*size_x/3, 23, 0);
@@ -65,12 +80,11 @@ int main(int argc, const char *argv[]) {
     wrefresh(info);
     wrefresh(escolhas);
 
-    abrir_csv();
     iniciar_menu(menu);
     iniciar_info(info);
 
-    thread thread_send(pegar_opcao, escolhas);
-    thread thread_info(thread_atualizacao, menu, info);
+    thread thread_send(pegar_opcao, escolhas, socketCliente, servidorSocket, file);
+    thread thread_info(thread_atualizacao, menu, info, clienteSocket);
 
     thread_send.join();
     thread_info.join();
