@@ -10,7 +10,7 @@ int configurar_sensores(struct bme280_dev *dev, struct identifier *id) {
         return 1;
     }
 
-    id->dev_addr = ENDERECO_SENSOR_EXTERNO;
+    id->dev_addr = ENDERECO_SENSOR;
 
     if (ioctl(id->fd, I2C_SLAVE, id->dev_addr) < 0) {
         // Failed to acquire bus access and/or talk to slave
@@ -31,7 +31,6 @@ int configurar_sensores(struct bme280_dev *dev, struct identifier *id) {
     }
 
     uint8_t settings_sel = 0;
-    struct bme280_data comp_data;
 
     dev->settings.osr_h = BME280_OVERSAMPLING_1X;
     dev->settings.osr_p = BME280_OVERSAMPLING_16X;
@@ -67,7 +66,7 @@ int configurar_gpio() {
     bcm2835_gpio_fsel(GPIO_SENSOR_COZINHA, BCM2835_GPIO_FSEL_INPT);
     bcm2835_gpio_fsel(GPIO_SENSOR_PORTA_COZINHA, BCM2835_GPIO_FSEL_INPT);
     bcm2835_gpio_fsel(GPIO_SENSOR_JANELA_COZINHA, BCM2835_GPIO_FSEL_INPT);
-    bcm2835_gpio_fsel(GPIO_SENSOR_PORTA_SALA BCM2835_GPIO_FSEL_INPT);
+    bcm2835_gpio_fsel(GPIO_SENSOR_PORTA_SALA, BCM2835_GPIO_FSEL_INPT);
     bcm2835_gpio_fsel(GPIO_SENSOR_JANELA_SALA, BCM2835_GPIO_FSEL_INPT);
     bcm2835_gpio_fsel(GPIO_SENSOR_JANELA_QUARTO_01, BCM2835_GPIO_FSEL_INPT);
     bcm2835_gpio_fsel(GPIO_SENSOR_JANELA_QUARTO_02, BCM2835_GPIO_FSEL_INPT);

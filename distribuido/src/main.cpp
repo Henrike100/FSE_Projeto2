@@ -1,12 +1,5 @@
-#include <stdio.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <thread>
-#include "gpio.hpp"
 #include "constantes.hpp"
+#include "configuracoes.hpp"
 
 using namespace std;
 
@@ -45,10 +38,8 @@ void enviar() {
     temperatura_umidade[0] = temperatura;
     temperatura_umidade[1] = umidade;
 
-    int bytes_enviados;
-
-    bytes_enviados = send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
-    bytes_enviados = send(socketCliente, valores, sizeof(valores), 0);
+    send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
+    send(socketCliente, valores, sizeof(valores), 0);
 }
 
 void receber() {
@@ -134,6 +125,8 @@ void receber_comandos() {
 }
 
 void leitura_sensores_bme280() {
+    struct bme280_data comp_data;
+
     if (bme280_set_sensor_mode(BME280_FORCED_MODE, &dev) == BME280_OK) {
         if (bme280_get_sensor_data(BME280_ALL, &comp_data, &dev) == BME280_OK) {
             float temp_lida = comp_data.temperature;
