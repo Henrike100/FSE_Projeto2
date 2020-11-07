@@ -2,6 +2,7 @@
 
 bool programa_pode_continuar = true;
 mutex mtx_interface;
+mutex mtx_csv;
 
 int alarme = 0;
 float temperatura = 0;
@@ -22,6 +23,10 @@ int valores[] = {
     0, // Janela Quarto 1
     0, // Janela Quarto 2
 };
+
+void signal_handler(int signum) {
+    programa_pode_continuar = false;
+}
 
 void atualizar_menu(WINDOW *menu) {
     mtx_interface.lock();
@@ -288,11 +293,51 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info, int clienteSocket) {
     close(clienteSocket);
 }
 
-void atualizar_csv(FILE *file, const int opcao, const int ligou) {
-    time_t now = time(0);
-    tm *ltm = localtime(&now);
+void thread_alarme(FILE *file) {
+    while(programa_pode_continuar) {
+        if(alarme) {
+            bool tocar = (
+                valores[6] or
+                valores[7] or
+                valores[8] or
+                valores[9] or
+                valores[10] or
+                valores[11] or
+                valores[12] or
+                valores[13]
+            );
+    
+            if(tocar) {
+                // ativar som do alarme
+                time_t now = time(0);
+                tm *ltm = localtime(&now);
+    
+                for(int i = 6; i < 14; ++i) {
+                    if(valores[i]) {
+                        mtx_csv.lock();
+                        fprintf(file, "%02d/%02d/%d %02d:%02d:%02d, Alarme, %s\n",
+                            ltm->tm_mday,
+                            ltm->tm_mon+1,
+                            ltm->tm_year+1900,
+                            ltm->tm_hour,
+                            ltm->tm_min,
+                            ltm->tm_sec,
+                            sensores[i-6]
+                        );
+                        mtx_csv.unlock();
+                    }
+                }
+            }
+        }
+        sleep(2);
+    }
+}
 
+void atualizar_csv(FILE *file, const int opcao, const int ligou) {
     if(opcao) {
+        time_t now = time(0);
+        tm *ltm = localtime(&now);
+        mtx_csv.lock();
         fprintf(file, "%02d/%02d/%d %02d:%02d:%02d, Usuário, %s%s\n",
             ltm->tm_mday,
             ltm->tm_mon+1,
@@ -303,5 +348,6 @@ void atualizar_csv(FILE *file, const int opcao, const int ligou) {
             ligou == 1 ? "Ligar " : ligou == 0 ? "Desligar " : "",
             opcoes[opcao]
         );
+        mtx_csv.unlock();
     }
 }

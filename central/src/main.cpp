@@ -8,6 +8,10 @@ int servidorSocket;
 int socketCliente;
 
 int main(int argc, const char *argv[]) {
+    signal(SIGHUP, signal_handler);
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
     int size_x, size_y;
     initscr();
 
@@ -85,9 +89,11 @@ int main(int argc, const char *argv[]) {
 
     thread thread_send(pegar_opcao, escolhas, socketCliente, servidorSocket, file);
     thread thread_info(thread_atualizacao, menu, info, clienteSocket);
+    thread thread_sensores(thread_alarme, file);
 
     thread_send.join();
     thread_info.join();
+    thread_sensores.join();
 
     delwin(menu);
     delwin(info);

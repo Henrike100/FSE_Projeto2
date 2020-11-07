@@ -11,3 +11,14 @@ const char *const opcoes[] = {
     "Alarme",
     "Definir Temperatura"
 };
+
+const char *const sensores[] = {
+    "Sala",
+    "Cozinha",
+    "Porta Cozinha",
+    "Janela Cozinha",
+    "Porta Sala",
+    "Janela Sala",
+    "Janela Quarto 01",
+    "Janela Quarto 02",
+};
