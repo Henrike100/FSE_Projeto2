@@ -38,8 +38,17 @@ void enviar() {
     temperatura_umidade[0] = temperatura;
     temperatura_umidade[1] = umidade;
 
-    send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
-    send(socketCliente, valores, sizeof(valores), 0);
+    int bytes_enviados;
+
+    bytes_enviados = send(socketCliente, temperatura_umidade, sizeof(temperatura_umidade), 0);
+    if(bytes_enviados != sizeof(temperatura_umidade)) {
+        printf("Erro ao enviar temperatura e umidade\n");
+    }
+
+    bytes_enviados = send(socketCliente, valores, sizeof(valores), 0);
+    if(bytes_enviados != sizeof(valores)) {
+        printf("Erro ao enviar valores\n");
+    }
 }
 
 void receber() {
@@ -120,8 +129,6 @@ void receber_comandos() {
     while(programa_pode_continuar) {
         receber();
     }
-
-    close(clienteSocket);
 }
 
 void leitura_sensores_bme280() {
@@ -132,9 +139,11 @@ void leitura_sensores_bme280() {
             float temp_lida = comp_data.temperature;
             float umid_lida = comp_data.humidity;
             if(0 <= temp_lida && temp_lida <= 50) {
+                printf("Temperatura lida: %.1f\n", temp_lida);
                 temperatura = temp_lida;
             }
             if(0 <= umid_lida && umid_lida <= 100) {
+                printf("Umidade lida: %.1f\n", umid_lida);
                 umidade = umid_lida;
             }
         }
@@ -186,10 +195,6 @@ void enviar_valores() {
         enviar();
         sleep(1);
     }
-
-    close(id.fd);
-    close(socketCliente);
-    close(servidorSocket);
 }
 
 int main(int argc, const char *argv[]) {
@@ -224,6 +229,11 @@ int main(int argc, const char *argv[]) {
 
     thread_send.join();
     thread_recv.join();
+
+    close(clienteSocket);
+    close(id.fd);
+    close(socketCliente);
+    close(servidorSocket);
 
     return 0;
 }
