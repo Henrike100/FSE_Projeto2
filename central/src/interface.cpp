@@ -147,7 +147,7 @@ void atualizar_info(WINDOW *info) {
     mvwprintw(info, 35, 2, "Janela (Quarto 02)");
     mvwprintw(info, 35, 2+barra_vertical, valores[13] ? "Aberta" : "Fechada");
 
-    mvwprintw(info, 37, 2, "CSV"); mvwprintw(info, 37, 2+barra_vertical, "Iniciando");
+    mvwprintw(info, 37, 2, "CSV"); mvwprintw(info, 37, 2+barra_vertical, "Funcionando");
 
     mvwvline(info, 3, barra_vertical, 0, 35);
     for(int i = 4; i <= 36; i += 2)
@@ -230,17 +230,19 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *
         if(opcao == 0)
             programa_pode_continuar = false;
         
-        float temp;
+        if(opcao == 7)
+            alarme = 1-alarme;
         
-        if(opcao == 8)
-            temp = pegar_temperatura(escolhas);
+        float temp;
 
         if(opcao != 7)
             send(socketCliente, &opcao, sizeof(opcao), 0);
         
-        if(opcao == 8)
+        if(opcao == 8) {
+            temp = pegar_temperatura(escolhas);
             send(socketCliente, &temp, sizeof(temp), 0);
-        
+        }
+
         int ligar;
 
         if(opcao == 5 or opcao == 6 or opcao == 8 or opcao == 0)
@@ -250,16 +252,12 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *
 
         atualizar_csv(file, opcao, ligar);
     } while (programa_pode_continuar);
-
-    fclose(file);
-    close(socketCliente);
-    close(servidorSocket);
 }
 
 void atualizar_valores(int clienteSocket) {
     int bytes_recebidos;
     float temperatura_umidade_servidor[2];
-    int valores_servidor[15];
+    int valores_servidor[14];
 
     bytes_recebidos = recv(clienteSocket, temperatura_umidade_servidor, sizeof(temperatura_umidade_servidor), 0);
     if(bytes_recebidos == sizeof(temperatura_umidade_servidor)) {
@@ -275,7 +273,7 @@ void atualizar_valores(int clienteSocket) {
 
     bytes_recebidos = recv(clienteSocket, valores_servidor, sizeof(valores_servidor), 0);
     if(bytes_recebidos == sizeof(valores_servidor)) {
-        for(int i = 0; i < 15; ++i) {
+        for(int i = 0; i < 14; ++i) {
             if(valores_servidor[i] == 0 or valores_servidor[i] == 1) {
                 valores[i] = valores_servidor[i];
             }
@@ -289,8 +287,6 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info, int clienteSocket) {
         atualizar_menu(menu);
         atualizar_info(info);
     }
-
-    close(clienteSocket);
 }
 
 void thread_alarme(FILE *file) {
@@ -308,7 +304,7 @@ void thread_alarme(FILE *file) {
             );
     
             if(tocar) {
-                // ativar som do alarme
+                system("omxplayer ../alarme.mp3");
                 time_t now = time(0);
                 tm *ltm = localtime(&now);
     

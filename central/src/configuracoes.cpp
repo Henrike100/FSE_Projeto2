@@ -54,6 +54,8 @@ int abrir_csv(FILE *file) {
         return 1;
     }
 
-    fprintf(file, "Data/Hora, Fonte, Ocorrido\n");
+    if(fprintf(file, "Data/Hora, Fonte, Ocorrido\n") <= 0)
+        return 2;
+
     return 0;
 }

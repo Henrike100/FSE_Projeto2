@@ -66,9 +66,14 @@ int main(int argc, const char *argv[]) {
 
     int erro = abrir_csv(file);
 
-    if(erro) {
+    if(erro == 1) {
         endwin();
         printf("Não foi possível abrir o CSV\n");
+        return 0;
+    }
+    else if(erro == 2) {
+        endwin();
+        printf("Não foi possível escrever no CSV\n");
         return 0;
     }
 
@@ -100,6 +105,11 @@ int main(int argc, const char *argv[]) {
     delwin(escolhas);
 
     endwin();
+
+    fclose(file);
+    close(socketCliente);
+    close(servidorSocket);
+    close(clienteSocket);
 
     return 0;
 }
