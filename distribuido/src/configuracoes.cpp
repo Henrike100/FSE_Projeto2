@@ -55,22 +55,22 @@ int configurar_gpio() {
 
     // saidas
     bcm2835_gpio_fsel(GPIO_LAMPADA_COZINHA, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 1);
+    bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 0);
 
     bcm2835_gpio_fsel(GPIO_LAMPADA_SALA, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_LAMPADA_SALA, 1);
+    bcm2835_gpio_write(GPIO_LAMPADA_SALA, 0);
 
     bcm2835_gpio_fsel(GPIO_LAMPADA_QUARTO_01, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 1);
+    bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 0);
 
     bcm2835_gpio_fsel(GPIO_LAMPADA_QUARTO_02, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 1);
+    bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 0);
 
     bcm2835_gpio_fsel(GPIO_AR_CONDICIONADO_01, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 1);
+    bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 0);
 
     bcm2835_gpio_fsel(GPIO_AR_CONDICIONADO_02, BCM2835_GPIO_FSEL_OUTP);
-    bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 1);
+    bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 0);
 
     // entradas
     bcm2835_gpio_fsel(GPIO_SENSOR_SALA, BCM2835_GPIO_FSEL_INPT);

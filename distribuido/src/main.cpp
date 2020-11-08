@@ -66,33 +66,33 @@ void receber() {
         switch (comando) {
         case 1:
             valores[0] = 1 - valores[0];
-            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 1-valores[0]);
+            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, valores[0]);
             break;
         case 2:
             valores[1] = 1 - valores[1];
-            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 1-valores[1]);
+            bcm2835_gpio_write(GPIO_LAMPADA_SALA, valores[1]);
             break;
         case 3:
             valores[2] = 1 - valores[2];
-            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 1-valores[2]);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, valores[2]);
             break;
         case 4:
             valores[3] = 1 - valores[3];
-            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 1-valores[3]);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, valores[3]);
             break;
         case 5:
             valores[0] = valores[1] = valores[2] = valores[3] = 1;
-            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 0);
-            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 0);
-            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 0);
-            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 0);
-            break;
-        case 6:
-            valores[0] = valores[1] = valores[2] = valores[3] = 0;
             bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 1);
             bcm2835_gpio_write(GPIO_LAMPADA_SALA, 1);
             bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 1);
             bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 1);
+            break;
+        case 6:
+            valores[0] = valores[1] = valores[2] = valores[3] = 0;
+            bcm2835_gpio_write(GPIO_LAMPADA_COZINHA, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_SALA, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_01, 0);
+            bcm2835_gpio_write(GPIO_LAMPADA_QUARTO_02, 0);
             break;
         case 8:
             bytesRecebidos = recv(clienteSocket, &temp_recebida, sizeof(temp_recebida), 0);
@@ -139,11 +139,11 @@ void leitura_sensores_bme280() {
             float temp_lida = comp_data.temperature;
             float umid_lida = comp_data.humidity;
             if(0 <= temp_lida && temp_lida <= 50) {
-                printf("Temperatura lida: %.1f\n", temp_lida);
+                //printf("Temperatura lida: %.1f\n", temp_lida);
                 temperatura = temp_lida;
             }
             if(0 <= umid_lida && umid_lida <= 100) {
-                printf("Umidade lida: %.1f\n", umid_lida);
+                //printf("Umidade lida: %.1f\n", umid_lida);
                 umidade = umid_lida;
             }
         }
@@ -151,14 +151,14 @@ void leitura_sensores_bme280() {
 }
 
 void leitura_sensores_gpio() {
-    valores[6] = (bcm2835_gpio_lev(GPIO_SENSOR_SALA) ? 0 : 1);
-    valores[7] = (bcm2835_gpio_lev(GPIO_SENSOR_COZINHA) ? 0 : 1);
-    valores[8] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_COZINHA) ? 0 : 1);
-    valores[9] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_COZINHA) ? 0 : 1);
-    valores[10] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_SALA) ? 0 : 1);
-    valores[11] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_SALA) ? 0 : 1);
-    valores[12] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_01) ? 0 : 1);
-    valores[13] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_02) ? 0 : 1);
+    valores[6] = (bcm2835_gpio_lev(GPIO_SENSOR_SALA) ? 1 : 0);
+    valores[7] = (bcm2835_gpio_lev(GPIO_SENSOR_COZINHA) ? 1 : 0);
+    valores[8] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_COZINHA) ? 1 : 0);
+    valores[9] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_COZINHA) ? 1 : 0);
+    valores[10] = (bcm2835_gpio_lev(GPIO_SENSOR_PORTA_SALA) ? 1 : 0);
+    valores[11] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_SALA) ? 1 : 0);
+    valores[12] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_01) ? 1 : 0);
+    valores[13] = (bcm2835_gpio_lev(GPIO_SENSOR_JANELA_QUARTO_02) ? 1 : 0);
 }
 
 void controlar_ar_condicionado() {
@@ -172,8 +172,8 @@ void controlar_ar_condicionado() {
         if(valores[4] == 0) {
             // liga os dois
             valores[4] = valores[5] = 1;
-            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 0);
-            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 0);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 1);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 1);
         }
     }
     else { // caso a temperatura ambiente esteja igual ou menor que a solicitada
@@ -181,8 +181,8 @@ void controlar_ar_condicionado() {
         if(valores[4] == 1) {
             // desliga os dois
             valores[4] = valores[5] = 0;
-            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 1);
-            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 1);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_01, 0);
+            bcm2835_gpio_write(GPIO_AR_CONDICIONADO_02, 0);
         }
     }
 }
