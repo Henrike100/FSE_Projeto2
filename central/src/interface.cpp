@@ -269,7 +269,7 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket) {
         else if(opcao != 7)
             ligar = 1-valores[opcao-1];
         else
-            ligar = 1-alarme;
+            ligar = alarme;
 
         atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
@@ -328,6 +328,7 @@ void thread_alarme() {
             );
     
             if(tocar) {
+                // esta função causa erros com o ncurses
                 system("omxplayer alarme.mp3 > /dev/null");
                 time_t now = time(0);
                 tm *ltm = localtime(&now);
