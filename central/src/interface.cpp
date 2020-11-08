@@ -210,7 +210,7 @@ float pegar_temperatura(WINDOW *escolhas) {
         wrefresh(escolhas);
         mvwprintw(escolhas, num_lines-3, 2, "Digite a temperatura: ");
         mtx_interface.unlock();
-        mvwscanw(escolhas, num_lines-3, 25, " %f", &temp);
+        mvwscanw(escolhas, num_lines-3, 24, " %f", &temp);
         invalid = temp < 0 || temp > 50;
     } while (invalid);
 
@@ -227,6 +227,7 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket) {
 
     do {
         do {
+            opcao = -1;
             mtx_interface.lock();
             wmove(escolhas, num_lines-3, 1);
             wclrtoeol(escolhas);
@@ -265,8 +266,10 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket) {
 
         if(opcao == 5 or opcao == 6 or opcao == 8 or opcao == 0)
             ligar = -1;
+        else if(opcao != 7)
+            ligar = 1-valores[opcao-1];
         else
-            ligar = valores[opcao];
+            ligar = 1-alarme;
 
         atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
@@ -346,7 +349,7 @@ void thread_alarme() {
                 }
             }
         }
-        sleep(2);
+        sleep(1);
     }
 }
 
