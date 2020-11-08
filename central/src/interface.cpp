@@ -192,7 +192,7 @@ float pegar_temperatura(WINDOW *escolhas) {
         wrefresh(escolhas);
         mvwprintw(escolhas, num_lines-3, 2, "Digite a temperatura: ");
         mtx_interface.unlock();
-        mvwscanw(escolhas, num_lines-3, 21, " %f", &temp);
+        mvwscanw(escolhas, num_lines-3, 25, " %f", &temp);
         invalid = temp < 0 || temp > 50;
     } while (invalid);
 
@@ -304,7 +304,7 @@ void thread_alarme(FILE *file) {
             );
     
             if(tocar) {
-                system("omxplayer ../alarme.mp3");
+                system("omxplayer alarme.mp3 > /dev/null");
                 time_t now = time(0);
                 tm *ltm = localtime(&now);
     
