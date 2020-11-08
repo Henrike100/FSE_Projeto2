@@ -242,7 +242,7 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket) {
             wrefresh(escolhas);
             mvwprintw(escolhas, num_lines-3, 2, "Escolha uma opcao: ");
             mtx_interface.unlock();
-            mvwscanw(escolhas, num_lines-3, 21, " %d", &opcao);
+            mvwscanw(escolhas, num_lines-3, 21, "%d", &opcao);
             invalid = opcao < 0 || opcao > 8;
         } while (invalid);
 

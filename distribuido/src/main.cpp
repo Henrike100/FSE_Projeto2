@@ -33,6 +33,16 @@ int socketCliente;
 struct bme280_dev dev;
 struct identifier id;
 
+void signal_handler(int signum) {
+    programa_pode_continuar = false;
+    close(clienteSocket);
+    close(id.fd);
+    close(socketCliente);
+    close(servidorSocket);
+
+    exit(0);
+}
+
 void enviar() {
     float temperatura_umidade[2];
     temperatura_umidade[0] = temperatura;
@@ -223,6 +233,10 @@ int main(int argc, const char *argv[]) {
         printf("Não foi possível se conectar ao Servidor Central\n");
         return 0;
     }
+
+    signal(SIGHUP, signal_handler);
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
     thread thread_send(enviar_valores);
     thread thread_recv(receber_comandos);
