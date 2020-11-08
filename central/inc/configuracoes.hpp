@@ -10,6 +10,5 @@
 
 int iniciar_conexao_servidor(int *servidorSocket, int *socketCliente);
 int iniciar_conexao_cliente(int *clienteSocket);
-int abrir_csv(FILE *file);
 
 #endif // CONFIGURACOES_HPP

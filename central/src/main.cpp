@@ -62,9 +62,7 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
-    FILE *file;
-
-    int erro = abrir_csv(file);
+    int erro = abrir_csv();
 
     if(erro == 1) {
         endwin();
@@ -92,9 +90,9 @@ int main(int argc, const char *argv[]) {
     iniciar_menu(menu);
     iniciar_info(info);
 
-    thread thread_send(pegar_opcao, escolhas, socketCliente, servidorSocket, file);
+    thread thread_send(pegar_opcao, escolhas, socketCliente, servidorSocket);
     thread thread_info(thread_atualizacao, menu, info, clienteSocket);
-    thread thread_sensores(thread_alarme, file);
+    thread thread_sensores(thread_alarme);
 
     thread_send.join();
     thread_info.join();
@@ -106,7 +104,7 @@ int main(int argc, const char *argv[]) {
 
     endwin();
 
-    fclose(file);
+    fechar_csv();
     close(socketCliente);
     close(servidorSocket);
     close(clienteSocket);

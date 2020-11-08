@@ -4,6 +4,8 @@ bool programa_pode_continuar = true;
 mutex mtx_interface;
 mutex mtx_csv;
 
+FILE *file;
+
 int alarme = 0;
 float temperatura = 0;
 float umidade = 0;
@@ -26,6 +28,22 @@ int valores[] = {
 
 void signal_handler(int signum) {
     programa_pode_continuar = false;
+}
+
+int abrir_csv() {
+    file = fopen("arquivo.csv", "w+");
+    if(file == NULL) {
+        return 1;
+    }
+
+    if(fprintf(file, "Data/Hora, Fonte, Ocorrido\n") <= 0)
+        return 2;
+
+    return 0;
+}
+
+void fechar_csv() {
+    fclose(file);
 }
 
 void atualizar_menu(WINDOW *menu) {
@@ -199,7 +217,7 @@ float pegar_temperatura(WINDOW *escolhas) {
     return temp;
 }
 
-void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *file) {
+void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket) {
     mtx_interface.lock();
     const int num_lines = getmaxy(escolhas);
     mtx_interface.unlock();
@@ -235,7 +253,7 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *
         
         float temp;
 
-        if(opcao != 7)
+        if(opcao != 7 && opcao != 0)
             send(socketCliente, &opcao, sizeof(opcao), 0);
         
         if(opcao == 8) {
@@ -250,8 +268,11 @@ void pegar_opcao(WINDOW *escolhas, int socketCliente, int servidorSocket, FILE *
         else
             ligar = valores[opcao];
 
-        atualizar_csv(file, opcao, ligar);
+        atualizar_csv(opcao, ligar);
     } while (programa_pode_continuar);
+
+    opcao = 0;
+    send(socketCliente, &opcao, sizeof(opcao), 0);
 }
 
 void atualizar_valores(int clienteSocket) {
@@ -289,7 +310,7 @@ void thread_atualizacao(WINDOW *menu, WINDOW *info, int clienteSocket) {
     }
 }
 
-void thread_alarme(FILE *file) {
+void thread_alarme() {
     while(programa_pode_continuar) {
         if(alarme) {
             bool tocar = (
@@ -329,7 +350,7 @@ void thread_alarme(FILE *file) {
     }
 }
 
-void atualizar_csv(FILE *file, const int opcao, const int ligou) {
+void atualizar_csv(const int opcao, const int ligou) {
     if(opcao) {
         time_t now = time(0);
         tm *ltm = localtime(&now);

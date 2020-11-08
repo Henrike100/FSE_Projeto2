@@ -47,15 +47,3 @@ int iniciar_conexao_cliente(int *clienteSocket) {
 
     return 0;
 }
-
-int abrir_csv(FILE *file) {
-    file = fopen("arquivo.csv", "w+");
-    if(file == NULL) {
-        return 1;
-    }
-
-    if(fprintf(file, "Data/Hora, Fonte, Ocorrido\n") <= 0)
-        return 2;
-
-    return 0;
-}

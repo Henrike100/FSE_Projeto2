@@ -18,15 +18,17 @@
 using namespace std;
 
 void signal_handler(int signum);
+int abrir_csv();
+void fechar_csv();
 void atualizar_menu(WINDOW *menu);
 void iniciar_menu(WINDOW *menu);
 void atualizar_info(WINDOW *info);
 void iniciar_info(WINDOW *info);
 float pegar_temperatura(WINDOW *escolhas);
-void pegar_opcao(WINDOW *menu, int socketCliente, int servidorSocket, FILE *file);
+void pegar_opcao(WINDOW *menu, int socketCliente, int servidorSocket);
 void atualizar_valores(int clienteSocket);
 void thread_atualizacao(WINDOW *menu, WINDOW *info, int clienteSocket);
-void thread_alarme(FILE *file);
-void atualizar_csv(FILE *file, const int opcao, const int ligou);
+void thread_alarme();
+void atualizar_csv(const int opcao, const int ligou);
 
 #endif // INTERFACE_HPP
